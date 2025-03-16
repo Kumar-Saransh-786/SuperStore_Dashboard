@@ -11,7 +11,7 @@ st.set_page_config(page_title="SuperStore KPI Dashboard", layout="wide")
 @st.cache_data
 def load_data():
     # Adjust the path if needed, e.g. "data/Sample - Superstore.xlsx"
-    df = pd.read_excel("Z:/NEU/ALY 6040 - Data Mining\Module 4/Sample - Superstore.xlsx", engine="openpyxl")
+    df = pd.read_excel("Sample - Superstore.xlsx", engine="openpyxl")
     # Convert Order Date to datetime if not already
     if not pd.api.types.is_datetime64_any_dtype(df["Order Date"]):
         df["Order Date"] = pd.to_datetime(df["Order Date"])
