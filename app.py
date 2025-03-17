@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from datetime import datetime
+import base64
+
 
 # Set page config for wide layout
 st.set_page_config(page_title="SuperStore KPI Dashboard", layout="wide")
@@ -97,6 +99,24 @@ df = df[
     (df["Order Date"] >= pd.to_datetime(from_date))
     & (df["Order Date"] <= pd.to_datetime(to_date))
 ]
+
+# Function to convert DataFrame to CSV (for download)
+def convert_df_to_csv(df):
+    # Convert DataFrame to CSV and then encode it into bytes and base64 string for the download link.
+    return df.to_csv(index=False).encode('utf-8')
+
+# Check if data is available for download and place the download button
+if not df.empty:
+    csv = convert_df_to_csv(df)
+    st.sidebar.download_button(
+        label="Download filtered data (CSV)",
+        data=csv,
+        file_name='filtered_data.csv',
+        mime='text/csv',
+        help="Click to download the currently filtered data."
+    )
+else:
+    st.sidebar.error("No data available to download. Please adjust your filters.")
 
 # ---- Page Title ----
 st.title("SuperStore KPI Dashboard")
@@ -363,3 +383,44 @@ with col2:
 
     # Display Bar Chart in Streamlit
     st.plotly_chart(fig_segment, use_container_width=True)
+
+# ---- Line Separator ----
+st.markdown('---')
+
+# ---- KPI Selection (Affects Both Charts) ----
+st.subheader("Month wise Sub-Category Summary")
+
+# Ensure 'Order Date' is in datetime format
+df['Order Date'] = pd.to_datetime(df['Order Date'])
+
+# Extract Year and Month for easier filtering
+df['Year'] = df['Order Date'].dt.year
+df['Month'] = df['Order Date'].dt.strftime('%Y-%m')  # Keeping it as 'YYYY-MM' for uniformity
+
+# Calculate Margin Rate here assuming 'Profit' and 'Sales' columns exist
+if 'Profit' in df.columns and 'Sales' in df.columns and 'Sales' != 0:
+    df['Margin Rate'] = (df['Profit'] / df['Sales']) * 100
+
+# Create filters for Year and Month
+year_filter = st.selectbox('Select Year', options=sorted(df['Year'].unique(), reverse=True))
+month_filter = st.selectbox('Select Month', options=sorted(df[df['Year'] == year_filter]['Month'].unique()))
+
+# Filter the monthly data based on selected year and month
+filtered_data = df[(df['Year'] == year_filter) & (df['Month'] == month_filter)]
+
+# Check if the selected KPI is available in the DataFrame
+if selected_kpi in df.columns:
+    # Group by month and subcategory
+    monthly_data = filtered_data.groupby(['Month', 'Sub-Category'])[selected_kpi].sum().reset_index()
+    st.write("Monthly Data by Sub-Category")
+    st.dataframe(monthly_data[['Month', 'Sub-Category', selected_kpi]])
+
+    # Function to convert DataFrame to CSV
+    def convert_df_to_csv(df):
+        return df.to_csv(index=False).encode('utf-8')
+
+    # Continue with the rest of your code...
+else:
+    st.error(f"The selected KPI '{selected_kpi}' is not calculated or does not exist in the DataFrame.")
+
+
